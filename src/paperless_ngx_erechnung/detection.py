@@ -127,7 +127,7 @@ def pdf_has_zugferd_attachment_name(path: Path) -> bool:
             except Exception:  # pragma: no cover - defensive
                 return False
             return any(name.lower() in _ZUGFERD_EMBED_NAMES for name in names)
-    except (pikepdf.PdfError, OSError):
+    except (pikepdf.PasswordError, pikepdf.PdfError, OSError):
         return False
 
 
