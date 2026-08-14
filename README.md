@@ -49,26 +49,27 @@ Once both are in place, Paperless picks up the parsers at startup — look for `
 
 ### Docker / Docker Compose
 
-The upstream image ships neither FOP nor this plugin, so we need to extend it with a small `Dockerfile` next to your `docker-compose.yml`:
+1. Set up Paperless-ngx with Docker Compose (e.g. by using [one of the official compose files](https://github.com/paperless-ngx/paperless-ngx/tree/main/docker/compose)). Since this upstream image ships neither FOP nor this plugin, we need to extend it with a small `Dockerfile`.
+2. Create the following `Dockerfile` next to your preferred `docker-compose.(XYZ).yml`:
 
 ```dockerfile
 FROM ghcr.io/paperless-ngx/paperless-ngx:3.0
 
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        default-jre-headless fop \
-    && rm -rf /var/lib/apt/lists/*
+  default-jre-headless fop \
+&& rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir paperless-ngx-erechnung
 USER paperless
 ```
 
-Now you can build this modified image with:
+3. Build this modified image. You can choose any image and tag name that you like for this custom image. Here, we'll be using `paperless-ngx-erechnung:latest`:
 
 ```bash
 docker build -t paperless-ngx-erechnung:latest .
 ```
 
-Then point your `webserver` service at the tagged image instead of the upstream one:
+4. Then point the `webserver` service in your existing `docker-compose.yml` at the newly created image instead of the upstream one:
 
 ```yaml
 services:
@@ -77,13 +78,20 @@ services:
     # ...keep the rest of your existing config (env, volumes, depends_on, ...)
 ```
 
-And restart Paperless to pick up the new image:
+5. Restart your Compose stack to pick up the new image:
 
 ```bash
 docker compose up -d
 ```
 
-(Or, if you prefer to let Compose handle the build, set `build: .` on the service instead of `image:` and run `docker compose build webserver && docker compose up -d`.)
+(Alternatively, if you want to do this in a single step, you can let Compose handle the build by setting `build: .` on the service instead of `image:` and run `docker compose build webserver && docker compose up -d`.)
+
+```yaml
+services:
+  webserver:
+    build: .
+    # ...keep the rest of your existing config (env, volumes, depends_on, ...)
+```
 
 ### Bare-metal
 
