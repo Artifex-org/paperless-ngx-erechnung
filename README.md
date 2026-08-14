@@ -1,9 +1,6 @@
 # paperless-ngx-erechnung
 
-> [!WARNING]
-> This plugin only works with Paperless-ngx v3.0 or greater. At the time of publication, this version of Paperless-ngx hasn't been released as a stable version. To test this plugin you need to run the `beta` branch of Paperless-ngx.
-
-German E-Rechnung parser plugin for [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx).
+German E-Rechnung parser plugin for [Paperless-ngx v3](https://github.com/paperless-ngx/paperless-ngx).
 
 Handles the two formats produced by the German B2B E-Rechnung mandate and makes their data visible and searchable in Paperless-ngx:
 
@@ -46,7 +43,7 @@ Built-in parsers score `10`; this plugin scores `100`, so it cleanly outranks de
 Unfortunately, installing this plugin is more than a single click and depends very much on your setup. Two pieces need to land in Paperless-ngx's runtime environment:
 
 1. The Python package itself, installed into the same interpreter Paperless runs under, so its `paperless_ngx.parsers` entry-points are discovered at startup.
-2. **Apache FOP** + a headless **JRE**, available on `PATH`, so the XRechnung → archive PDF stage works.
+2. **Apache FOP** + a headless Java **JRE**, available on `PATH`, so the XRechnung → archive PDF stage works.
 
 Once both are in place, Paperless picks up the parsers at startup — look for `Loaded third-party parser 'XRechnung' …` in the logs to confirm succesful installation.
 
@@ -55,7 +52,7 @@ Once both are in place, Paperless picks up the parsers at startup — look for `
 The upstream image ships neither FOP nor this plugin, so we need to extend it with a small `Dockerfile` next to your `docker-compose.yml`:
 
 ```dockerfile
-FROM ghcr.io/paperless-ngx/paperless-ngx:beta
+FROM ghcr.io/paperless-ngx/paperless-ngx:3.0
 
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
