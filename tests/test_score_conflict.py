@@ -64,6 +64,30 @@ def test_zugferd_declines_plain_pdf(tmp_path: Path) -> None:
     assert ZUGFeRDParser.score("application/pdf", "scan.pdf", out) is None
 
 
+def test_zugferd_declines_password_protected_pdf(
+    tmp_path: Path,
+    cii_invoice_bytes: bytes,
+) -> None:
+    pytest.importorskip("pikepdf")
+    import pikepdf  # noqa: PLC0415
+
+    pdf = pikepdf.Pdf.new()
+    pdf.add_blank_page(page_size=(595, 842))
+    pdf.attachments["factur-x.xml"] = pikepdf.AttachedFileSpec(
+        pdf,
+        cii_invoice_bytes,
+        filename="factur-x.xml",
+        mime_type="text/xml",
+        relationship=pikepdf.Name("/Alternative"),
+    )
+    out = tmp_path / "protected.pdf"
+    pdf.save(
+        str(out),
+        encryption=pikepdf.Encryption(user="secret", owner="secret"),
+    )
+    assert ZUGFeRDParser.score("application/pdf", "protected.pdf", out) is None
+
+
 def test_xrechnung_score_high_enough_to_outrank_builtins(
     ubl_invoice_path: Path,
 ) -> None:
