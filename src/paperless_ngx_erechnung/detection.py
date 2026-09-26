@@ -93,6 +93,17 @@ class ErechnungValidationError(ValueError):
     """
 
 
+class ErechnungProfileDeclined(ErechnungValidationError):
+    """The invoice is well-formed but carries a profile this plugin declines.
+
+    Sub-EN16931 Factur-X/ZUGFeRD profiles (MINIMUM, BASIC WL, BASIC) and UBL
+    without the XRechnung CIUS are ordinary documents to Paperless, not broken
+    ones. Distinguishing this from a broken attachment lets the ZUGFeRD parser
+    step aside in ``score()`` so the built-in PDF parser archives the file,
+    instead of claiming it and refusing the whole document in ``parse()``.
+    """
+
+
 def looks_like_erechnung_xml(xml_bytes: bytes) -> bool:
     """Cheap sniff: does *xml_bytes* mention a UBL or CII invoice namespace?
 
@@ -207,7 +218,8 @@ def validate_zugferd_pdf(path: Path) -> bytes:
         validate_german_erechnung_xml(data)
     except ErechnungValidationError as exc:
         msg = f"Embedded {matched_name!r}: {exc}"
-        raise ErechnungValidationError(msg) from exc
+        # Keep the subclass: callers tell "declined profile" from "broken".
+        raise type(exc)(msg) from exc
 
     return data
 
@@ -269,7 +281,7 @@ def _require_ubl_xrechnung_profile(root: etree._Element) -> None:
             f"XRechnung CIUS (expected a value containing "
             f"{_XRECHNUNG_PROFILE_MARKER!r})."
         )
-        raise ErechnungValidationError(msg)
+        raise ErechnungProfileDeclined(msg)
 
 
 def _require_cii_german_erechnung_profile(root: etree._Element) -> None:
@@ -304,4 +316,4 @@ def _require_cii_german_erechnung_profile(root: etree._Element) -> None:
         f"sub-EN16931 profiles like BASIC, BASIC WL and MINIMUM are intentionally "
         f"declined)."
     )
-    raise ErechnungValidationError(msg)
+    raise ErechnungProfileDeclined(msg)

@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING
 from typing import Self
 
 from paperless_ngx_erechnung import __version__
+from paperless_ngx_erechnung.detection import ErechnungProfileDeclined
 from paperless_ngx_erechnung.detection import ErechnungValidationError
 from paperless_ngx_erechnung.detection import is_german_erechnung_xml
 from paperless_ngx_erechnung.detection import looks_like_erechnung_xml
@@ -460,6 +461,17 @@ class ZUGFeRDParser:
         # to the built-in Tesseract parser.
         if not pdf_has_zugferd_attachment_name(path):
             return None
+        # A well-formed attachment with a declined profile (MINIMUM, BASIC WL,
+        # BASIC) is an ordinary PDF to Paperless: step aside so the built-in
+        # parser archives it. Claiming it would make parse() refuse the whole
+        # document, and the file would never reach the archive. A broken
+        # attachment is still claimed so parse() can surface the precise reason.
+        try:
+            validate_zugferd_pdf(path)
+        except ErechnungProfileDeclined:
+            return None
+        except ErechnungValidationError:
+            return _WIN_SCORE
         return _WIN_SCORE
 
     # --- properties ---------------------------------------------------------
