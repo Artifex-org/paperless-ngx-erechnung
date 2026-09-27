@@ -88,6 +88,47 @@ def test_zugferd_declines_password_protected_pdf(
     assert ZUGFeRDParser.score("application/pdf", "protected.pdf", out) is None
 
 
+@pytest.mark.parametrize(
+    "profile",
+    [
+        # Real-world URN from a supplier invoice that was refused wholesale.
+        "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic",
+        "urn:factur-x.eu:1p0:minimum",
+        "urn:factur-x.eu:1p0:basicwl",
+    ],
+)
+def test_zugferd_steps_aside_for_declined_profiles(
+    tmp_path: Path,
+    cii_invoice_bytes: bytes,
+    profile: str,
+) -> None:
+    """A sub-EN16931 Factur-X PDF is an ordinary PDF to Paperless.
+
+    Claiming it made parse() refuse the whole document, so it never reached
+    the archive. Declining in score() lets the built-in parser archive it.
+    """
+    pytest.importorskip("pikepdf")
+    import pikepdf  # noqa: PLC0415
+
+    xml = cii_invoice_bytes.replace(
+        b"urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0",
+        profile.encode(),
+    )
+    assert profile.encode() in xml
+    pdf = pikepdf.Pdf.new()
+    pdf.add_blank_page(page_size=(595, 842))
+    pdf.attachments["factur-x.xml"] = pikepdf.AttachedFileSpec(
+        pdf,
+        xml,
+        filename="factur-x.xml",
+        mime_type="text/xml",
+        relationship=pikepdf.Name("/Alternative"),
+    )
+    out = tmp_path / "basic.pdf"
+    pdf.save(str(out))
+    assert ZUGFeRDParser.score("application/pdf", "basic.pdf", out) is None
+
+
 def test_xrechnung_score_high_enough_to_outrank_builtins(
     ubl_invoice_path: Path,
 ) -> None:
